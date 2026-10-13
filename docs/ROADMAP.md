@@ -27,7 +27,7 @@
 - [x] Levels: 0–29 Low · 30–59 Medium · 60–79 High · 80+ Critical
 - [x] `winvault compare` sorts by score, shows level + points + reasons, hides noise;
       full detail (incl. `analysis`) in `--json`. CI asserts the new admin user scores critical.
-- [ ] Extra collectors: firewall, Defender prefs/exclusions, hosts file, installed software (Phase 2.1)
+- [x] Extra collectors: firewall, Defender prefs/exclusions, hosts file, installed software (done in v0.5 / v1.2)
 
 ## Phase 3 — Event Log correlation & timeline ✅
 - [x] `winvault/events/` — Get-WinEvent with a UTC XPath window (baseline → now); events are
@@ -78,8 +78,12 @@
 - [x] DTD/entity refusal for task and event XML; absolute paths for system tools
 - [ ] Keyed HMAC / external anchor for snapshot hashes (an administrator can still rewrite a snapshot *and* its index)
 
+## v1.2 — Full plan coverage ✅
+- [x] Firewall rules and profiles, Defender exclusions and protection settings, security policy (password/lockout, user rights, audit policy), installed software, system configuration (UAC, RDP, LSA, WDigest, SMB, PowerShell, IFEO)
+- [x] 15 new scoring rules, 2 new noise rules, firewall/Defender/policy event correlation
+
 ## Ideas for later
 - Code-signed releases (removes the SmartScreen prompt)
 - Scheduled baselines/compares (Windows Task Scheduler integration) with report on change
 - More evidence: PowerShell 4104 script blocks, Sysmon (1/12/13), SACL-based registry 4657
-- More areas: firewall rules, Defender exclusions and settings, installed software, WMI subscriptions
+- More areas: WMI event subscriptions, COM hijacking, browser extensions

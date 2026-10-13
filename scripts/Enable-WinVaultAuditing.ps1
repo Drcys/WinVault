@@ -11,6 +11,9 @@
     Security Group Management   4732 4733
     Other Object Access Events  4698 4699 4702   (scheduled tasks)
     Security System Extension   4697             (service installs)
+    Audit Policy Change         4719             (audit policy changes)
+    Authorization Policy Change 4704 4705        (user rights)
+    MPSSVC Rule-Level Policy    4946 4947 4948   (firewall rules)
     Task Scheduler Operational log               (106 140 141)
 
   It also raises the Security log to 256 MB so evidence is not overwritten
@@ -37,6 +40,9 @@ $subcategories = [ordered]@{
     'Security Group Management (4732/4733)'      = '{0CCE9237-69AE-11D9-BED3-505054503030}'
     'Other Object Access Events (4698/4702)'     = '{0CCE9227-69AE-11D9-BED3-505054503030}'
     'Security System Extension (4697)'           = '{0CCE9211-69AE-11D9-BED3-505054503030}'
+    'Audit Policy Change (4719)'                 = '{0CCE922F-69AE-11D9-BED3-505054503030}'
+    'Authorization Policy Change (4704/4705)'    = '{0CCE9231-69AE-11D9-BED3-505054503030}'
+    'MPSSVC Rule-Level Policy Change (4946-48)'  = '{0CCE9232-69AE-11D9-BED3-505054503030}'
 }
 $auditKey  = 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System\Audit'
 $taskLog   = 'Microsoft-Windows-TaskScheduler/Operational'

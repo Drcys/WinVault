@@ -22,7 +22,9 @@ CONFIDENCE_COLORS = {"high": "#46a758", "medium": "#e2a336", "low": "#6e8cae", "
 KIND_COLORS = {"process": "#8e7cc3", "event": "#6e8cae", "change": "#e2a336", "alert": "#e5484d"}
 STATUS_SYMBOL = {ChangeStatus.ADDED: "+", ChangeStatus.REMOVED: "-", ChangeStatus.MODIFIED: "~"}
 CATEGORY_LABEL = {"registry": "Registry", "services": "Service", "tasks": "Scheduled task",
-                  "users": "Account", "startup": "Startup item"}
+                  "users": "Account", "startup": "Startup item", "files": "Critical file",
+                  "firewall": "Firewall", "defender": "Defender", "policy": "Security policy",
+                  "software": "Software", "system": "System setting"}
 
 
 def short(value, width: int = 90) -> str:
@@ -35,6 +37,19 @@ def display_name(change: Change) -> str:
     item = change.after or change.before or {}
     if change.category == "users" and item.get("name"):
         return f"{item.get('kind', 'user')} {item['name']}  ({item.get('sid', change.key)})"
+    if change.category == "firewall" and change.key.startswith("rule:"):
+        return f"rule {item.get('name') or item.get('rule_id')}  ({item.get('store')}: {item.get('rule_id')})"
+    if change.category == "defender" and change.key.startswith("exclusion:"):
+        return f"{item.get('kind')} exclusion {item.get('value')}"
+    if change.category == "policy" and change.key.startswith("audit:"):
+        return f"audit {item.get('_subcategory') or item.get('guid')}"
+    if change.category == "software" and item.get("display_name"):
+        version = f" {item['display_version']}" if item.get("display_version") else ""
+        return f"{item['display_name']}{version}  ({item.get('scope')})"
+    if change.category == "system" and change.key.startswith(("ifeo:", "silentexit:")):
+        return f"{change.key.split(':')[0]} {item.get('exe')} -> {item.get('value')}"
+    if change.category in ("firewall", "defender", "policy", "system") and item.get("name"):
+        return str(item["name"])
     return change.key
 
 

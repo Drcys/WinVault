@@ -80,6 +80,7 @@ SYSTEM_TOOLS = {
     "powershell.exe": r"System32\WindowsPowerShell\v1.0\powershell.exe",
     "icacls.exe": r"System32\icacls.exe",
     "auditpol.exe": r"System32\auditpol.exe",
+    "secedit.exe": r"System32\secedit.exe",
     "wevtutil.exe": r"System32\wevtutil.exe",
     "taskkill.exe": r"System32\taskkill.exe",
     "tasklist.exe": r"System32\tasklist.exe",

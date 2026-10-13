@@ -120,6 +120,59 @@ def microsoft_task_refresh(change: Change) -> str | None:
     return "Microsoft built-in task rewritten (hash-only change)"
 
 
+@rule("store-app-firewall-rule")
+def store_app_firewall_rule(change: Change) -> str | None:
+    """Rules scoped to a Microsoft Store app package (AppContainer SID S-1-15-2-...) come and go
+    as apps install and update. Such a rule only ever applies to that sandboxed package, and we
+    only excuse it when it opens no explicit local port and has no remote-address change."""
+    if change.category != "firewall" or not change.key.startswith("rule:"):
+        return None
+    sides = [s for s in (change.before, change.after) if s]
+    if not sides or not all(str(s.get("package") or "").startswith("S-1-15-2-") for s in sides):
+        return None
+    if any(s.get("local_ports") not in (None, "") for s in sides):
+        return None
+    if change.status is ChangeStatus.MODIFIED and change.field_names() - {"name", "app", "group", "profiles", "active"}:
+        return None
+    return "Microsoft Store app firewall rule (scoped to its app package)"
+
+
+_VERSION = re.compile(r"\d+(?:[._-]\d+)+|\bv?\d+\b", re.IGNORECASE)
+
+
+def _strip_versions(text) -> str:
+    return re.sub(r"\s+", " ", _VERSION.sub("", str(text or "")).lower()).strip(" ()-")
+
+
+@rule("software-version-update")
+def software_version_update(change: Change) -> str | None:
+    """An installed app whose only change is its version (name/paths differ only in version numbers)."""
+    if change.category != "software" or change.status is not ChangeStatus.MODIFIED:
+        return None
+    if change.field_names() - {"display_version", "display_name", "uninstall_string", "install_location"}:
+        return None
+    for f in change.fields:
+        if f.name != "display_version" and _strip_versions(f.before) != _strip_versions(f.after):
+            return None
+    return "software version update"
+
+
+def pair_software_upgrades(changes: list[Change]) -> None:
+    """An upgrade that re-registers under a new key shows up as one removed and one added
+    entry with the same product name (versions stripped) and publisher. Tag both as noise."""
+    removed: dict[tuple, Change] = {}
+    for c in changes:
+        if c.category == "software" and c.status is ChangeStatus.REMOVED:
+            removed[(_strip_versions(c.item.get("display_name")), str(c.item.get("publisher") or "").lower())] = c
+    for c in changes:
+        if c.category == "software" and c.status is ChangeStatus.ADDED:
+            old = removed.pop((_strip_versions(c.item.get("display_name")), str(c.item.get("publisher") or "").lower()),
+                              None)
+            if old is not None and not old.noise:
+                why = f"software upgraded ({old.item.get('display_version')} -> {c.item.get('display_version')})"
+                old.noise = c.noise = why
+
+
 def _basename(path: str) -> str:
     return re.split(r"[\\/]", path.strip().strip('"').split(",")[0])[-1].lower()
 
