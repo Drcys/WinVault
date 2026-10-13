@@ -214,6 +214,21 @@ def _tokens(change: Change) -> list[str]:
     return [t for t in toks if t and len(t) >= 4 and t != "(Default)"]
 
 
+# A command line that merely mentions the same folder or program (for example the `sc.exe create`
+# that installed a service from the folder later excluded from Defender) is not evidence that it made
+# *this* change. For these categories the command must also be one that can make this kind of change.
+CHANGE_COMMANDS = {
+    "defender": re.compile(r"MpPreference|MpCmdRun|Windows Defender\\Exclusions|-Exclusion", re.IGNORECASE),
+    "system": re.compile(r"Image File Execution Options|SilentProcessExit|\bgflags", re.IGNORECASE),
+}
+
+
+def _change_command(change: Change):
+    if change.category == "system" and change.key.startswith("setting:"):
+        return None
+    return CHANGE_COMMANDS.get(change.category)
+
+
 def _artifact_time(change: Change) -> tuple[datetime | None, str | None]:
     it = change.item
     for field, label in (("_key_last_write", "registry key last-write time"),
@@ -226,7 +241,8 @@ def _artifact_time(change: Change) -> tuple[datetime | None, str | None]:
     return None, None
 
 
-def _find_process(idx: EventIndex, tokens: list[str], when: datetime | None, window_end: datetime | None):
+def _find_process(idx: EventIndex, tokens: list[str], when: datetime | None, window_end: datetime | None,
+                  require=None):
     """Most recent 4688 whose command line contains one of the tokens, before `when`."""
     if not tokens:
         return None
@@ -240,7 +256,7 @@ def _find_process(idx: EventIndex, tokens: list[str], when: datetime | None, win
             if e["_t"] > upper + CLOCK_SLACK or e["_t"] < upper - PROCESS_LOOKBACK:
                 continue
         cmd = e["data"].get("CommandLine") or ""
-        if cmd and any(p.search(cmd) for p in patterns):
+        if cmd and any(p.search(cmd) for p in patterns) and (require is None or require.search(cmd)):
             best = e  # sorted ascending -> keep the latest match
     return best
 
@@ -308,8 +324,9 @@ def correlate(result: ComparisonResult, current: dict, baseline: dict | None = N
         else:
             when, when_source = _artifact_time(change)
 
-        proc_ev = _find_process(idx, _tokens(change), when, window_end)
-        if proc_ev and not actor:
+        proc_ev = _find_process(idx, _tokens(change), when, window_end, _change_command(change))
+        if proc_ev and (not actor or change.category == "defender"):
+            # Defender writes 5007 from its own service, so its user is always SYSTEM, never the actor.
             actor = actor_of(proc_ev, ctx.name_by_sid)
         if proc_ev and not anchors:
             when, when_source = proc_ev["_t"], "process creation (event 4688)"

@@ -294,3 +294,29 @@ def test_remote_access_detected_when_existing_entry_is_renamed():
                      before={"display_name": "AnyDesk", "display_version": "9.0.3"},
                      after={"display_name": "AnyDesk", "display_version": "9.0.4"})
     assert remote_access_software(upgrade) is None
+
+
+def _proc(rec, t, cmd):
+    return {"log": "Security", "event_id": 4688, "record_id": rec, "time": t,
+            "data": {"NewProcessName": "C:\\Windows\\System32\\x.exe", "CommandLine": cmd,
+                     "SubjectUserName": "bob", "SubjectDomainName": "PC"}}
+
+
+def test_exclusion_not_blamed_on_a_command_that_only_mentions_the_folder():
+    folder = "C:\\Users\\bob\\AppData\\Roaming\\updsvc"
+    df = {f"exclusion:path:{folder.lower()}": {"kind": "path", "value": folder}}
+    e5007 = {"log": "Microsoft-Windows-Windows Defender/Operational", "event_id": 5007, "record_id": 9,
+             "time": "2026-10-13T10:03:00.0000000Z", "user_sid": "S-1-5-18",
+             "data": {"Old Value": "", "New Value": f"HKLM\\SOFTWARE\\Microsoft\\Windows Defender\\Exclusions\\Paths\\{folder} = 0x0"}}
+    sc = _proc(1, "2026-10-13T10:02:00.0000000Z", f"sc.exe create UpdSvc binPath= {folder}\\updsvc.exe")
+    for events, expect in (([sc, e5007], None),
+                           ([sc, _proc(2, "2026-10-13T10:02:30.0000000Z",
+                                       f"powershell.exe Add-MpPreference -ExclusionPath {folder}"), e5007], "powershell")):
+        base, cur = _corr_snaps({"defender": df}, events)
+        result = compare_snapshots(base, cur)
+        analyze(result)
+        correlate(result, cur, base)
+        cmd = (result.changes[0].attribution.get("process") or {}).get("command_line") or ""
+        assert ("sc.exe" not in cmd) and (expect is None and not cmd or expect and expect in cmd)
+        if expect:
+            assert result.changes[0].attribution["user"] == "PC\\bob"     # not SYSTEM from 5007
