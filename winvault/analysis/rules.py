@@ -470,11 +470,17 @@ def new_software(change: Change):
 
 @rule("remote-access-software")
 def remote_access_software(change: Change):
-    if change.category == "software" and change.status is ChangeStatus.ADDED:
-        name = f"{change.item.get('display_name', '')} {change.item.get('publisher', '')}".lower()
-        hit = next((r for r in REMOTE_ACCESS if r in name), None)
-        if hit:
-            return 40, f"remote access software installed ({hit})"
+    if change.category != "software" or change.status is ChangeStatus.REMOVED:
+        return None
+
+    def tool(entry):
+        name = f"{(entry or {}).get('display_name', '')} {(entry or {}).get('publisher', '')}".lower()
+        return next((r for r in REMOTE_ACCESS if r in name), None)
+
+    hit = tool(change.after)
+    if hit and (change.status is ChangeStatus.ADDED or tool(change.before) != hit):
+        # MODIFIED: an existing entry renamed into a remote access tool (not a version update of one)
+        return 40, f"remote access software installed ({hit})"
     return None
 
 
