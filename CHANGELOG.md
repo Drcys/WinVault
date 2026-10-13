@@ -16,7 +16,7 @@ Completes the twelve areas of the original project plan.
 - **Noise rules** for Microsoft Store app firewall rules (package-scoped, no open port) and software version updates / upgrade pairs, each with adversarial tests.
 - **Evidence:** Security 4946/4947/4948 (firewall rules), 4704/4705 (user rights), 4719 (audit policy) and Defender 5007/5001 are collected and correlated; `winvault audit --enable` turns on the three extra audit subcategories.
 - `Test-WinVaultChanges.ps1` also adds a firewall rule, a Defender exclusion, an Uninstall entry and an IFEO debugger (all harmless, removed by `-Cleanup`); the Windows CI job asserts that each is detected and scored.
-- 25 new tests (124 in total).
+- 26 new tests (125 in total).
 
 ## [1.1.0] — 2026-10-13
 Hardening release based on the capstone security assessment (findings F-2 to F-6).

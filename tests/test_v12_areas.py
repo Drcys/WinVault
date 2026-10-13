@@ -265,3 +265,19 @@ def test_user_right_and_audit_events_summaries():
                                     "SubjectUserName": "bob", "SubjectDomainName": "PC"}}
     assert summarize(e, {"S-1-5-21-9-1010": "svc_backup"}) == "user right assigned: SeDebugPrivilege to svc_backup (by PC\\bob)"
     assert summarize({"event_id": 5001, "data": {}}) == "Microsoft Defender real-time protection disabled"
+
+
+def test_ifeo_entry_seen_through_both_views_is_reported_once(monkeypatch):
+    import winvault.collectors.system as system
+    monkeypatch.setattr(system, "is_windows", lambda: True)
+    base = r"Image File Execution Options"
+    monkeypatch.setattr(system.regutil, "subkeys",
+                        lambda hive, path: ["WinVaultTest.exe"] if path.endswith(base) else [])
+
+    def values(hive, path):
+        if path.endswith("WinVaultTest.exe"):
+            return {"Debugger": "notepad.exe"}, None
+        return None
+    monkeypatch.setattr(system.regutil, "read_values", values)
+    items = system.SystemCollector().collect()
+    assert [k for k in items if k.startswith("ifeo:")] == ["ifeo:x64:winvaulttest.exe"]
