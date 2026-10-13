@@ -72,6 +72,9 @@ class SystemCollector(Collector):
             for exe in regutil.subkeys("HKLM", path):
                 got = regutil.read_values("HKLM", path + "\\" + exe)
                 if got and got[0].get("Debugger"):
+                    native = items.get(f"ifeo:x64:{exe.lower()}")
+                    if view == "x86" and native and native["value"] == str(got[0]["Debugger"]):
+                        continue          # same entry seen through the 32-bit view (shared on some builds)
                     items[f"ifeo:{view}:{exe.lower()}"] = {"exe": exe, "value": str(got[0]["Debugger"]),
                                                           "_key_last_write": got[1]}
         for exe in regutil.subkeys("HKLM", SILENT_EXIT):
