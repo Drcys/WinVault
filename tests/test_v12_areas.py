@@ -281,3 +281,16 @@ def test_ifeo_entry_seen_through_both_views_is_reported_once(monkeypatch):
     monkeypatch.setattr(system.regutil, "read_values", values)
     items = system.SystemCollector().collect()
     assert [k for k in items if k.startswith("ifeo:")] == ["ifeo:x64:winvaulttest.exe"]
+
+
+def test_remote_access_detected_when_existing_entry_is_renamed():
+    from winvault.analysis.rules import remote_access_software
+    from winvault.models import Change, ChangeStatus
+    base = {"display_name": "Notepad++ (64-bit x64)", "publisher": "Notepad++ Team", "display_version": "8.6"}
+    renamed = Change(category="software", key="machine:Notepad++", status=ChangeStatus.MODIFIED,
+                     before=base, after={**base, "display_name": "RustDesk", "publisher": "Purslane"})
+    assert remote_access_software(renamed)[0] == 40
+    upgrade = Change(category="software", key="machine:AnyDesk", status=ChangeStatus.MODIFIED,
+                     before={"display_name": "AnyDesk", "display_version": "9.0.3"},
+                     after={"display_name": "AnyDesk", "display_version": "9.0.4"})
+    assert remote_access_software(upgrade) is None
