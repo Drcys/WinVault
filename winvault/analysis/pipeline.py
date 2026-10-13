@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..models import ComparisonResult
-from .noise import classify_noise
+from .noise import classify_noise, pair_software_upgrades
 from .rules import level_for, score_change
 
 
@@ -27,7 +27,10 @@ def analyze(result: ComparisonResult) -> AnalysisStats:
     """Annotate every Change with noise/score/level in place; return summary stats."""
     stats = AnalysisStats(total=len(result.changes))
     for change in result.changes:
-        change.noise = classify_noise(change)
+        change.noise = None
+    pair_software_upgrades(result.changes)
+    for change in result.changes:
+        change.noise = change.noise or classify_noise(change)
         if change.noise:
             stats.noise += 1
             change.score, change.level, change.reasons = 0, "noise", []

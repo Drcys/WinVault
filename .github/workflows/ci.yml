@@ -92,6 +92,34 @@ jobs:
           html = open(os.path.join(os.environ["RUNNER_TEMP"], "report.html"), encoding="utf-8").read()
           assert "wv_testuser" in html and "Timeline" in html
           print("critical files hashed and HTML report generated")
+
+          # v1.2: firewall, Defender, policy, software and system collectors.
+          def note(msg):
+              print(f"::notice title=WinVault v1.2::{msg}")
+          for cat in ("firewall", "defender", "policy", "software", "system"):
+              s = r["summary"].get(cat)
+              note(f"collector {cat}: " + (str(s) if s else "not compared"))
+          for w in r["warnings"]:
+              note(f"warning: {w[:180]}")
+          hit("firewall", "added", "WinVaultTest")
+          hit("software", "added", "WinVaultTest")
+          hit("system", "added", "winvaulttest.exe")
+          assert "policy" in r["summary"], r["summary"].keys()
+          def find(cat, needle):
+              return next(c for c in r["changes"] if c["category"] == cat and needle.lower() in c["key"].lower())
+          fw, sw, ifeo = find("firewall", "WinVaultTest"), find("software", "WinVaultTest"), find("system", "winvaulttest.exe")
+          for c in (fw, sw, ifeo):
+              assert c["analysis"]["noise"] is None, ("test artifact wrongly filtered", c["key"])
+              note(f"{c['category']} {c['key']}: {c['analysis']['level']} {c['analysis']['score']} "
+                   f"{c['analysis']['reasons']} evidence={sorted(ev_ids(c))} "
+                   f"confidence={(c['correlation']['attribution'] or {}).get('confidence')}")
+          assert fw["analysis"]["level"] == "medium" and fw["analysis"]["score"] == 50, fw["analysis"]  # 30 rule + 20 port 4444
+          assert ifeo["analysis"]["level"] == "high", ifeo["analysis"]
+          if "defender" in r["summary"]:
+              d = find("defender", "winvaulttest")
+              note(f"defender {d['key']}: {d['analysis']['level']} {d['analysis']['score']} evidence={sorted(ev_ids(d))}")
+              assert d["analysis"]["level"] in ("high", "critical"), d["analysis"]
+          print("v1.2 collectors detected their test changes")
       - name: Cleanup
         if: always()
         run: .\scripts\Test-WinVaultChanges.ps1 -Cleanup

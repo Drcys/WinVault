@@ -129,6 +129,11 @@ Prefer windows and buttons? Download **`WinVault-GUI.exe`** from the same releas
 | Accounts & groups | Local users, groups, Administrators membership | Security 4720–4738, 4732 / 4733 |
 | Startup folders | All users + every profile, SHA-256 | file timestamps, process command line |
 | Critical files | `drivers\etc\hosts`, `networks`, `protocol`, `services`, `lmhosts.sam`, SHA-256 | content hash |
+| Firewall | Every rule (local + Group Policy store) and the on/off state and default inbound action of each profile | Security 4946 / 4947 / 4948 |
+| Microsoft Defender | Path, extension, process and IP exclusions; real-time, behaviour, script, cloud, PUA, controlled-folder, network and tamper protection | Defender 5007 / 5001 |
+| Security policy | Password and lockout policy, user rights assignments (`SeDebugPrivilege`…), advanced audit policy (by GUID) | Security 4704 / 4705 / 4719 |
+| Installed software | Uninstall entries (machine 64/32-bit and every loaded user) | key last-write time |
+| System configuration | UAC, Remote Desktop + NLA, LSA protection, NTLM level, WDigest, SMBv1/signing, Windows Update and PowerShell logging policies, Defender/WinRM policies; Image File Execution Options debuggers and SilentProcessExit monitors | key last-write time |
 
 ## Good to know
 

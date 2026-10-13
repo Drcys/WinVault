@@ -45,6 +45,14 @@ def summarize(ev: dict, sid_names: dict[str, str] | None = None) -> str:
         106: lambda: f"task registered: {_d(ev, 'TaskName')} (by {_d(ev, 'UserContext')})",
         140: lambda: f"task updated: {_d(ev, 'TaskName')} (by {_d(ev, 'UserName')})",
         141: lambda: f"task deleted: {_d(ev, 'TaskName')} (by {_d(ev, 'UserName')})",
+        4719: lambda: f"audit policy changed: {_d(ev, 'SubcategoryGuid')} {_d(ev, 'AuditPolicyChanges')} (by {_who(ev)})",
+        4704: lambda: f"user right assigned: {_d(ev, 'PrivilegeList')} to {sid_names.get(_d(ev, 'TargetSid')) or _d(ev, 'TargetSid')} (by {_who(ev)})",
+        4705: lambda: f"user right removed: {_d(ev, 'PrivilegeList')} from {sid_names.get(_d(ev, 'TargetSid')) or _d(ev, 'TargetSid')} (by {_who(ev)})",
+        4946: lambda: f"firewall rule added: {_d(ev, 'RuleName')} ({_d(ev, 'RuleId')})",
+        4947: lambda: f"firewall rule modified: {_d(ev, 'RuleName')} ({_d(ev, 'RuleId')})",
+        4948: lambda: f"firewall rule deleted: {_d(ev, 'RuleName')} ({_d(ev, 'RuleId')})",
+        5001: lambda: "Microsoft Defender real-time protection disabled",
+        5007: lambda: f"Defender configuration changed: {_d(ev, 'New Value') or _d(ev, 'NewValue')}",
     }
     fn = table.get(i)
     return fn() if fn else f"event {i}"

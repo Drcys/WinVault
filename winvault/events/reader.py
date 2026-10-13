@@ -21,6 +21,7 @@ from ..collectors.base import CollectorError, as_list, is_windows, run_powershel
 
 NS = {"e": "http://schemas.microsoft.com/win/2004/08/events/event"}
 TASK_LOG = "Microsoft-Windows-TaskScheduler/Operational"
+DEFENDER_LOG = "Microsoft-Windows-Windows Defender/Operational"
 
 # (name, log, event ids, max events). 4688 gets its own query so a flood of
 # process events can never push account/service/task events out of the cap.
@@ -31,6 +32,8 @@ QUERIES: list[tuple[str, str, list[int], int]] = [
     ("processes", "Security", [4688], 5000),
     ("system", "System", [104, 7040, 7045], 2000),
     ("task-scheduler", TASK_LOG, [106, 140, 141], 2000),
+    ("policy-firewall", "Security", [4719, 4704, 4705, 4946, 4947, 4948], 2000),
+    ("defender", DEFENDER_LOG, [5001, 5007], 1000),
 ]
 
 PS_TEMPLATE = r"""
@@ -50,7 +53,7 @@ foreach ($s in $specs) {
       })
     }
   } catch {
-    if ($_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*') {
+    if ($_.FullyQualifiedErrorId -notlike 'NoMatchingEventsFound*' -and $_.FullyQualifiedErrorId -notlike 'NoMatchingLogsFound*') {
       $errors[$s.name] = $_.Exception.Message
     }
   }

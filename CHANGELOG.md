@@ -2,6 +2,22 @@
 
 All notable changes to WinVault. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-10-13
+Completes the twelve areas of the original project plan.
+
+### Added
+- **Five new collectors** (11 in total):
+  - `firewall` — every Windows Firewall rule (local and Group Policy store) and each profile's on/off state and default inbound action, read from the registry (fast, language-independent).
+  - `defender` — Microsoft Defender exclusions (path, extension, process, IP) and protection settings, including tamper protection (Get-MpPreference / Get-MpComputerStatus).
+  - `policy` — password and lockout policy and user rights assignments (`secedit /export`) and the advanced audit policy by subcategory GUID (`auditpol /backup`).
+  - `software` — installed software from the Uninstall keys (machine 64/32-bit and every loaded user).
+  - `system` — UAC, Remote Desktop/NLA, LSA protection, NTLM level, WDigest, SMBv1/signing, Windows Update and PowerShell logging policies, Defender/WinRM policies; Image File Execution Options debuggers and SilentProcessExit monitors.
+- **15 new scoring rules** (35 in total): new inbound allow rules and commonly abused ports, rules opened up, firewall profile off; Defender exclusions (broad, user-writable, interpreters, executable types) and weakened protection; weakened password/lockout/audit policy and sensitive user rights granted; new software, remote access tools, security software removed; weakened system settings; IFEO / sticky-keys / SilentProcessExit hijacks.
+- **Noise rules** for Microsoft Store app firewall rules (package-scoped, no open port) and software version updates / upgrade pairs, each with adversarial tests.
+- **Evidence:** Security 4946/4947/4948 (firewall rules), 4704/4705 (user rights), 4719 (audit policy) and Defender 5007/5001 are collected and correlated; `winvault audit --enable` turns on the three extra audit subcategories.
+- `Test-WinVaultChanges.ps1` also adds a firewall rule, a Defender exclusion, an Uninstall entry and an IFEO debugger (all harmless, removed by `-Cleanup`); the Windows CI job asserts that each is detected and scored.
+- 25 new tests (124 in total).
+
 ## [1.1.0] — 2026-10-13
 Hardening release based on the capstone security assessment (findings F-2 to F-6).
 

@@ -139,7 +139,47 @@ def _match_tasks(change: Change, idx: EventIndex, ctx: Context) -> list[dict]:
     return [e for e in idx.by_id(*ids) if _eq(e["data"].get("TaskName"), change.key)]
 
 
-MATCHERS = {"users": _match_users, "services": _match_services, "tasks": _match_tasks}
+def _match_firewall(change: Change, idx: EventIndex, ctx: Context) -> list[dict]:
+    if not change.key.startswith("rule:"):
+        return []
+    rule_id = change.key.split(":", 2)[2]
+    ids = {ChangeStatus.ADDED: (4946,), ChangeStatus.MODIFIED: (4947,), ChangeStatus.REMOVED: (4948,)}[change.status]
+    return [e for e in idx.by_id(*ids) if _eq(e["data"].get("RuleId"), rule_id)]
+
+
+def _match_defender(change: Change, idx: EventIndex, ctx: Context) -> list[dict]:
+    """Defender 5007 records the registry path and value of every configuration change."""
+    item = change.item
+    needle = str(item.get("value") if change.key.startswith("exclusion:") else item.get("name") or "").lower()
+    if len(needle) < 3:
+        return []
+    out = [e for e in idx.by_id(5007) if any(needle in str(v).lower() for v in e["data"].values())]
+    if item.get("name") in ("RealTimeProtectionEnabled", "DisableRealtimeMonitoring"):
+        out += idx.by_id(5001)
+    return out
+
+
+def _match_policy(change: Change, idx: EventIndex, ctx: Context) -> list[dict]:
+    item = change.item
+    if change.key.startswith("audit:"):
+        return [e for e in idx.by_id(4719) if _eq(e["data"].get("SubcategoryGuid"), item.get("guid"))]
+    if change.key.startswith("right:"):
+        before = (change.before or {}).get("members") or []
+        after = (change.after or {}).get("members") or []
+        out = []
+        for members, event_id in (([m for m in after if m not in before], 4704),
+                                  ([m for m in before if m not in after], 4705)):
+            for e in idx.by_id(event_id):
+                d = e["data"]
+                if item.get("name", "").lower() in str(d.get("PrivilegeList", "")).lower() and \
+                        any(_eq(d.get("TargetSid"), m) for m in members):
+                    out.append(e)
+        return out
+    return []
+
+
+MATCHERS = {"users": _match_users, "services": _match_services, "tasks": _match_tasks,
+            "firewall": _match_firewall, "defender": _match_defender, "policy": _match_policy}
 
 
 # ---- helpers -----------------------------------------------------------------
@@ -155,6 +195,14 @@ def _tokens(change: Change) -> list[str]:
         toks = [change.key.split("\\")[-1]]
     elif change.category == "startup":
         toks = [it.get("file_name")]
+    elif change.category == "firewall":
+        toks = [it.get("name")] if not str(it.get("name") or "").startswith("@") else []
+    elif change.category == "defender":
+        toks = [re.split(r"[\\/]", str(it.get("value") or ""))[-1]] if change.key.startswith("exclusion:") else []
+    elif change.category == "software":
+        toks = [it.get("display_name")]
+    elif change.category == "system":
+        toks = [it.get("exe")]
     elif change.category == "users":
         if it.get("kind") == "group":
             added, removed = _member_delta(change)

@@ -22,6 +22,9 @@ SUBCATEGORIES: list[tuple[str, str, str]] = [
     ("Security Group Management", "{0CCE9237-69AE-11D9-BED3-505054503030}", "4732/4733 — group membership"),
     ("Other Object Access Events", "{0CCE9227-69AE-11D9-BED3-505054503030}", "4698/4702 — scheduled tasks"),
     ("Security System Extension", "{0CCE9211-69AE-11D9-BED3-505054503030}", "4697 — service installs"),
+    ("Audit Policy Change", "{0CCE922F-69AE-11D9-BED3-505054503030}", "4719 — audit policy changes"),
+    ("Authorization Policy Change", "{0CCE9231-69AE-11D9-BED3-505054503030}", "4704/4705 — user rights"),
+    ("MPSSVC Rule-Level Policy Change", "{0CCE9232-69AE-11D9-BED3-505054503030}", "4946-4948 — firewall rules"),
 ]
 CMDLINE_KEY = r"Software\Microsoft\Windows\CurrentVersion\Policies\System\Audit"
 CMDLINE_VALUE = "ProcessCreationIncludeCmdLine_Enabled"
