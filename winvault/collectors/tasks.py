@@ -11,7 +11,7 @@ import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from .base import Collector, CollectorError, is_windows, iso_from_timestamp, sha256_file
+from .base import Collector, CollectorError, is_windows, iso_from_timestamp, safe_fromstring, sha256_file
 
 NS = {"t": "http://schemas.microsoft.com/windows/2004/02/mit/task"}
 
@@ -24,11 +24,13 @@ def _text(node, path) -> str | None:
 def parse_task_xml(raw: bytes) -> dict:
     """Extract the security-relevant fields from a task definition."""
     try:
-        root = ET.fromstring(raw)
-    except ET.ParseError:
+        root = safe_fromstring(raw)
+    except ET.ParseError as exc:
+        if "refused" in str(exc):
+            raise
         # Some tasks are UTF-16 without a matching declaration.
         text = raw.decode("utf-16", errors="replace")
-        root = ET.fromstring(text.split("?>", 1)[-1] if text.startswith("<?xml") else text)
+        root = safe_fromstring(text.split("?>", 1)[-1] if text.startswith("<?xml") else text)
 
     actions = []
     for exe in root.findall("t:Actions/t:Exec", NS):

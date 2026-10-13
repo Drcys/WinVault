@@ -21,7 +21,7 @@ param([string]$Version = "latest")
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'          # much faster Invoke-WebRequest
-$repo = 'M7MD-2030/WinVault'
+$repo = 'Drcys/WinVault'
 $base = if ($Version -eq 'latest') { "https://github.com/$repo/releases/latest/download" }
         else { "https://github.com/$repo/releases/download/$Version" }
 

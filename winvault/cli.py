@@ -24,7 +24,7 @@ from .models import ChangeStatus, ComparisonResult
 from .presentation import describe_field, display_name, grouped_evidence, local_time  # noqa: F401 (re-exported)
 from .presentation import short as _short
 from .service import investigate
-from .snapshot import IntegrityError, SnapshotStore, load_snapshot_file, take_snapshot
+from .snapshot import IntegrityError, SnapshotStore, file_sha256, load_snapshot_file, take_snapshot
 
 SYMBOL = {ChangeStatus.ADDED: "+", ChangeStatus.REMOVED: "-", ChangeStatus.MODIFIED: "~"}
 LEVEL_TAG = {"critical": "CRIT", "high": "HIGH", "medium": "MED ", "low": "low ", "noise": "noise"}
@@ -233,26 +233,52 @@ def cmd_compare(args) -> int:
 
 def cmd_diff(args) -> int:
     store = SnapshotStore(args.store)
+    file_hashes: dict[str, str] = {}
+    notes: list[str] = []
 
     def load(ref):
-        return load_snapshot_file(ref) if Path(ref).is_file() else store.load(ref)
+        if not Path(ref).is_file():
+            return store.load(ref)                      # store copy: verified against index.json
+        snap = load_snapshot_file(ref)
+        digest = file_sha256(ref)
+        file_hashes[snap["id"]] = digest
+        recorded = _recorded_hash(store, snap["id"])
+        if recorded and recorded != digest:
+            raise IntegrityError(f"{ref} does not match the SHA-256 recorded for snapshot {snap['id']} "
+                                 f"in {store.index_path} - the file was modified")
+        if recorded:
+            notes.append(f"{Path(ref).name}: SHA-256 matches the store index ({digest[:16]}...)")
+        else:
+            notes.append(f"{Path(ref).name} was loaded from a file and could not be checked against a store "
+                         f"index - compare its SHA-256 {digest} with the one recorded in the original "
+                         f"report before relying on it")
+        return snap
 
     try:
         a, b = load(args.a), load(args.b)
     except (KeyError, IntegrityError, ValueError) as exc:
         err(str(exc).strip("'"))
         return EXIT_ERROR
-    return _report(a, b, args)
+    return _report(a, b, args, notes=notes, file_hashes=file_hashes)
 
 
-def _report(baseline: dict, current: dict, args) -> int:
+def _recorded_hash(store: SnapshotStore, snap_id: str) -> str | None:
+    try:
+        return store._read_index()["snapshots"].get(snap_id, {}).get("sha256")
+    except (OSError, ValueError):
+        return None
+
+
+def _report(baseline: dict, current: dict, args, notes: list[str] | None = None,
+            file_hashes: dict[str, str] | None = None) -> int:
     inv = investigate(baseline, current)
     result = inv.result
+    result.warnings[:0] = notes or []
     print_result(result, inv.stats, args.show, show_noise=args.show_noise, timeline=args.timeline)
     try:
         if args.html:
             from .report import render_html, snapshot_hashes
-            hashes = snapshot_hashes(SnapshotStore(args.store), baseline["id"], current["id"])
+            hashes = {**(file_hashes or {}), **snapshot_hashes(SnapshotStore(args.store), baseline["id"], current["id"])}
             Path(args.html).write_text(render_html(inv, hashes), encoding="utf-8")
             print(f"\nHTML report written to {args.html}  (open it and Print -> Save as PDF for a PDF)")
         if args.json:

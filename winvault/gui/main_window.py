@@ -401,7 +401,7 @@ class MainWindow(QMainWindow):
             "<p>Security-focused change analysis for Windows: capture a baseline, capture again, and see "
             "what changed, whether it matters, who did it, and the evidence.</p>"
             f"<p>Snapshot store: <code>{self.store.root}</code></p>"
-            "<p>MIT License · <a href='https://github.com/M7MD-2030/WinVault'>github.com/M7MD-2030/WinVault</a></p>")
+            "<p>MIT License · <a href='https://github.com/Drcys/WinVault'>github.com/Drcys/WinVault</a></p>")
 
     def on_choose_store(self) -> None:
         path = QFileDialog.getExistingDirectory(self, "Choose snapshot store", str(self.store.root))

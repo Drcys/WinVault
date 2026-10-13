@@ -19,7 +19,7 @@ from pathlib import Path
 
 from . import __version__
 from .collectors import ALL_COLLECTORS, CollectorError
-from .collectors.base import is_admin
+from .collectors.base import is_admin, system_tool
 
 SNAPSHOT_FORMAT = "winvault-snapshot/1"
 
@@ -142,7 +142,7 @@ def restrict_to_admins(path: Path) -> bool:
         return False
     import subprocess
     try:
-        proc = subprocess.run(["icacls", str(path), "/inheritance:r",
+        proc = subprocess.run([system_tool("icacls.exe"), str(path), "/inheritance:r",
                                "/grant:r", "*S-1-5-32-544:(OI)(CI)F", "/grant:r", "*S-1-5-18:(OI)(CI)F"],
                               capture_output=True, timeout=30, check=False)
         return proc.returncode == 0
@@ -235,6 +235,10 @@ class SnapshotStore:
         if hashlib.sha256(data).hexdigest() != entry["sha256"]:
             raise IntegrityError(f"snapshot {snap_id} failed SHA-256 verification — file was modified")
         return json.loads(data)
+
+
+def file_sha256(path: str | Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def load_snapshot_file(path: str | Path) -> dict:

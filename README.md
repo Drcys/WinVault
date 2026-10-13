@@ -10,8 +10,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/M7MD-2030/WinVault/actions/workflows/ci.yml"><img src="https://github.com/M7MD-2030/WinVault/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/M7MD-2030/WinVault/releases/latest"><img src="https://img.shields.io/github/v/release/M7MD-2030/WinVault" alt="Latest release"></a>
+  <a href="https://github.com/Drcys/WinVault/actions/workflows/ci.yml"><img src="https://github.com/Drcys/WinVault/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/Drcys/WinVault/releases/latest"><img src="https://img.shields.io/github/v/release/Drcys/WinVault" alt="Latest release"></a>
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6" alt="Windows 10 | 11">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT"></a>
@@ -33,7 +33,7 @@ Tools like Regshot show *every* difference between two points in time, and a nor
 
 ## Quick start: command line (no Python needed)
 
-**1. Download** `winvault.exe` from the [latest release](https://github.com/M7MD-2030/WinVault/releases/latest). Optionally, verify it against `SHA256SUMS.txt`:
+**1. Download** `winvault.exe` from the [latest release](https://github.com/Drcys/WinVault/releases/latest). Optionally, verify it against `SHA256SUMS.txt`:
 ```powershell
 Get-FileHash .\winvault.exe -Algorithm SHA256
 ```
@@ -141,7 +141,7 @@ Prefer windows and buttons? Download **`WinVault-GUI.exe`** from the same releas
 ## Install from source
 
 ```powershell
-git clone https://github.com/M7MD-2030/WinVault.git
+git clone https://github.com/Drcys/WinVault.git
 cd WinVault
 py -m venv .venv; .\.venv\Scripts\Activate.ps1
 pip install -e ".[gui]"        # add ,dev for tests

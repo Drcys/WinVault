@@ -14,7 +14,7 @@ import io
 import subprocess
 from dataclasses import dataclass
 
-from .collectors.base import CollectorError, is_windows
+from .collectors.base import CollectorError, is_windows, system_tool
 
 SUBCATEGORIES: list[tuple[str, str, str]] = [
     ("Process Creation", "{0CCE922B-69AE-11D9-BED3-505054503030}", "4688 — which process made a change"),
@@ -39,7 +39,7 @@ class AuditItem:
 
 def _run(args: list[str]) -> str:
     try:
-        proc = subprocess.run(args, capture_output=True, timeout=30, check=False)
+        proc = subprocess.run([system_tool(args[0]), *args[1:]], capture_output=True, timeout=30, check=False)
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise CollectorError(f"{args[0]} failed: {exc}") from exc
     if proc.returncode != 0:

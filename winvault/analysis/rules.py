@@ -36,6 +36,21 @@ def rule(name: str):
     return deco
 
 
+# Fields that carry what an object *runs*. A modification touching one of them is
+# treated like a new autorun for the interpreter / user-writable qualifiers.
+COMMAND_FIELDS = {"image_path", "service_dll", "value", "actions", "command"}
+
+STARTUP_RUNNABLE = (".exe", ".com", ".bat", ".cmd", ".ps1", ".vbs", ".vbe", ".js", ".jse",
+                    ".wsf", ".hta", ".lnk", ".url", ".scr", ".dll", ".pif", ".jar")
+
+
+def _runs_something_new(change: Change) -> bool:
+    """Added object, or a modification of what an existing object executes."""
+    if change.status is ChangeStatus.ADDED:
+        return True
+    return change.status is ChangeStatus.MODIFIED and bool(change.field_names() & COMMAND_FIELDS)
+
+
 def _text(change: Change) -> str:
     """Command / image / value text to scan for interpreters and paths."""
     it = change.item
@@ -86,6 +101,71 @@ def new_startup_item(change: Change):
     return None
 
 
+@rule("startup-runnable")
+def startup_runnable(change: Change):
+    """A startup item that Windows will execute or open at logon (exe, script, shortcut...).
+    Every startup folder is under Users or ProgramData, so the path itself says nothing."""
+    if change.category == "startup" and change.status is ChangeStatus.ADDED:
+        if str(change.item.get("extension") or "").lower() in STARTUP_RUNNABLE:
+            return 20, "startup item is an executable, script or shortcut"
+    return None
+
+
+# ---- persistence: changes to existing objects (hijacking) -----------------------
+
+@rule("run-value-changed")
+def run_value_changed(change: Change):
+    if change.category == "registry" and change.status is ChangeStatus.MODIFIED and "value" in change.field_names():
+        key = change.item.get("key", "")
+        if re.search(r"\\Run(Once)?$", key) or "Policies\\Explorer\\Run" in key:
+            return 30, "existing autorun value now runs something else"
+    return None
+
+
+@rule("service-binary-changed")
+def service_binary_changed(change: Change):
+    if change.category == "services" and change.status is ChangeStatus.MODIFIED:
+        if change.field_names() & {"image_path", "service_dll"}:
+            return 40, "existing service now runs a different binary or DLL"
+    return None
+
+
+@rule("task-action-changed")
+def task_action_changed(change: Change):
+    if change.category == "tasks" and change.status is ChangeStatus.MODIFIED and "actions" in change.field_names():
+        return 40, "existing scheduled task now runs a different action"
+    return None
+
+
+@rule("task-privilege-raised")
+def task_privilege_raised(change: Change):
+    if change.category != "tasks" or change.status is not ChangeStatus.MODIFIED:
+        return None
+    b, a = _field(change, "run_as_user")
+    if a is not None and (str(a) == "S-1-5-18" or str(a).lower().endswith("system")) and a != b:
+        return 20, "existing task now runs as SYSTEM"
+    b, a = _field(change, "run_level")
+    if str(a or "").lower() == "highestavailable" and str(b or "").lower() != "highestavailable":
+        return 10, "existing task now runs with highest privileges"
+    return None
+
+
+@rule("task-hidden")
+def task_hidden(change: Change):
+    if change.category == "tasks" and change.status is ChangeStatus.MODIFIED:
+        b, a = _field(change, "hidden")
+        if a is True and b is not True:
+            return 15, "existing task was made hidden"
+    return None
+
+
+@rule("startup-content-changed")
+def startup_content_changed(change: Change):
+    if change.category == "startup" and change.status is ChangeStatus.MODIFIED and "sha256" in change.field_names():
+        return 25, "startup item content replaced"
+    return None
+
+
 # ---- qualifiers that sharpen the above ----------------------------------------
 
 @rule("runs-as-system")
@@ -101,7 +181,7 @@ def runs_as_system(change: Change):
 
 @rule("uses-interpreter")
 def uses_interpreter(change: Change):
-    if change.status is not ChangeStatus.ADDED or change.category not in ("registry", "services", "tasks", "startup"):
+    if not _runs_something_new(change) or change.category not in ("registry", "services", "tasks", "startup"):
         return None
     text = _text(change).lower()
     for lol in LOLBINS:
@@ -112,7 +192,7 @@ def uses_interpreter(change: Change):
 
 @rule("user-writable-path")
 def user_writable_path(change: Change):
-    if change.status is not ChangeStatus.ADDED or change.category not in ("registry", "services", "tasks", "startup"):
+    if not _runs_something_new(change) or change.category not in ("registry", "services", "tasks"):
         return None
     if USER_WRITABLE.search(_text(change)):
         return 20, "target binary in a user-writable location"
