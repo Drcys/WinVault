@@ -5,7 +5,7 @@ Thanks for helping! Bug reports, new detection rules, noise rules, collectors an
 ## Getting started
 
 ```powershell
-git clone https://github.com/M7MD-2030/WinVault.git
+git clone https://github.com/Drcys/WinVault.git
 cd WinVault
 py -m venv .venv; .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev,gui]"

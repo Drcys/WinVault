@@ -2,6 +2,22 @@
 
 All notable changes to WinVault. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-10-13
+Hardening release based on the capstone security assessment (findings F-2 to F-6).
+
+### Added
+- **Scoring of hijacked existing objects.** Changes to what an existing object runs are now scored, not only new objects: a service whose binary or DLL changed (+40), a scheduled task whose action changed (+40), made to run as SYSTEM (+20) or with highest privileges (+10), or made hidden (+15), an existing Run/RunOnce value that now runs something else (+30), and a startup item whose content was replaced (+25). The *executes an interpreter* and *user-writable location* qualifiers now also apply when such a modification points at powershell/cmd/… or at a user-writable folder.
+- New startup items that Windows will run or open at logon (`.exe`, scripts, `.lnk`, `.url`, …) get +20.
+- `winvault diff` with snapshot **files** checks them: a file that differs from the SHA-256 recorded for that snapshot in the store index is refused, and a file that can't be checked prints its SHA-256 (also shown in the HTML report) so it can be compared with the original report.
+- 17 new tests (`tests/test_hardening.py`), 99 in total.
+
+### Security
+- Task definitions and event records containing a DTD or entity declaration are refused before parsing (protects the standard-library XML parser against entity-expansion input).
+- Built-in Windows programs (`powershell.exe`, `icacls.exe`, `auditpol.exe`, `wevtutil.exe`, `taskkill.exe`, `tasklist.exe`, `explorer.exe`) are started by their full path under `%SystemRoot%`, so a look-alike earlier on PATH can't be run by the elevated process.
+
+### Changed
+- Repository moved to [github.com/Drcys/WinVault](https://github.com/Drcys/WinVault); `Update-WinVault.ps1`, README and the About dialog point there.
+
 ## [1.0.2] — 2026-10-01
 ### Added
 - `winvault install` now **pins WinVault to the taskbar** on Windows 11 (from an Administrator terminal), next to File Explorer, with its icon. Your existing pins are kept. It uses Windows' own taskbar-layout setting for the current user, and restarts Explorer once so the pin shows up straight away. `--no-pin` skips it.

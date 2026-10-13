@@ -17,7 +17,7 @@ import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 
-from ..collectors.base import CollectorError, as_list, is_windows, run_powershell_json
+from ..collectors.base import CollectorError, as_list, is_windows, run_powershell_json, safe_fromstring
 
 NS = {"e": "http://schemas.microsoft.com/win/2004/08/events/event"}
 TASK_LOG = "Microsoft-Windows-TaskScheduler/Operational"
@@ -97,7 +97,7 @@ def build_xpath(ids: list[int], start: datetime, end: datetime) -> str:
 
 def parse_event_xml(xml: str) -> dict:
     """Pull EventData (named or positional), the System security SID and computer."""
-    root = ET.fromstring(xml)
+    root = safe_fromstring(xml)
     data: dict[str, str] = {}
     for i, node in enumerate(root.findall("e:EventData/e:Data", NS)):
         name = node.get("Name") or f"param{i + 1}"

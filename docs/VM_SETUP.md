@@ -63,7 +63,7 @@ virt-viewer --connect qemu:///system $VM &
    ```
 3. **Close Terminal and open a new Terminal (Admin).** Windows only picks up newly installed programs in new windows, so `git` and `py` won't be found in the old one. Then clone and install WinVault:
    ```powershell
-   git clone https://github.com/M7MD-2030/WinVault.git C:\dev\WinVault
+   git clone https://github.com/Drcys/WinVault.git C:\dev\WinVault
    cd C:\dev\WinVault
    py -m venv .venv; .\.venv\Scripts\Activate.ps1
    pip install -e ".[dev]"

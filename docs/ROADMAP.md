@@ -71,6 +71,13 @@
 - [x] App icon, menu bar, About; version resource on the .exe files
 - [x] End-user README, DEVELOPMENT / CONTRIBUTING / SECURITY / CHANGELOG, issue & PR templates
 
+## v1.1 — Assessment hardening ✅
+- [x] Score modifications of existing objects (service binary/DLL, task action/principal/run level/hidden, Run values, startup content)
+- [x] Startup items that run at logon (+20); qualifiers apply to modified commands
+- [x] `diff` verifies snapshot files against the store index or prints their SHA-256
+- [x] DTD/entity refusal for task and event XML; absolute paths for system tools
+- [ ] Keyed HMAC / external anchor for snapshot hashes (an administrator can still rewrite a snapshot *and* its index)
+
 ## Ideas for later
 - Code-signed releases (removes the SmartScreen prompt)
 - Scheduled baselines/compares (Windows Task Scheduler integration) with report on change

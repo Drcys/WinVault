@@ -19,7 +19,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from .collectors.base import is_admin
+from .collectors.base import is_admin, system_tool
 
 EXE_NAME = "winvault.exe"
 GUI_NAME = "WinVault-GUI.exe"
@@ -132,7 +132,7 @@ def create_shortcut(link: Path, target: Path) -> bool:
     env = {**os.environ, "WV_LINK": str(link), "WV_TARGET": str(target), "WV_DIR": str(target.parent)}
     try:
         link.parent.mkdir(parents=True, exist_ok=True)
-        proc = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+        proc = subprocess.run([system_tool("powershell.exe"), "-NoProfile", "-NonInteractive", "-Command", script],
                               env=env, capture_output=True, timeout=60, check=False)
         return proc.returncode == 0 and link.exists()
     except (OSError, subprocess.TimeoutExpired):
@@ -198,14 +198,14 @@ def _restart_shell() -> None:
     """Restart Explorer so the taskbar reloads. Windows starts it again by itself (non-elevated)."""
     import subprocess
     import time
-    subprocess.run(["taskkill.exe", "/f", "/im", "explorer.exe"], capture_output=True, check=False)
+    subprocess.run([system_tool("taskkill.exe"), "/f", "/im", "explorer.exe"], capture_output=True, check=False)
     for _ in range(20):                               # Windows normally brings it back within ~2 s
         time.sleep(0.5)
-        out = subprocess.run(["tasklist.exe", "/fi", "imagename eq explorer.exe", "/nh"],
+        out = subprocess.run([system_tool("tasklist.exe"), "/fi", "imagename eq explorer.exe", "/nh"],
                              capture_output=True, text=True, check=False).stdout
         if "explorer.exe" in out.lower():
             return
-    subprocess.Popen(["explorer.exe"])                # AutoRestartShell is off: start it ourselves
+    subprocess.Popen([system_tool("explorer.exe")])                # AutoRestartShell is off: start it ourselves
 
 
 def pin_to_taskbar(link: Path, layout_dir: Path) -> str:
